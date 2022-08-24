@@ -20,13 +20,13 @@ impl Iterator for NSeive {
     }
 }
 
-struct PrimeSeive {
+pub struct PrimeSeive {
     index: usize,
     seives: Vec<Peekable<NSeive>>,
 }
 
 impl PrimeSeive {
-    fn new() -> PrimeSeive {
+    pub fn new() -> PrimeSeive {
         PrimeSeive {
             index: 1,
             seives: vec![],
