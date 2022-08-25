@@ -1,3 +1,7 @@
+#![feature(test)]
+
+extern crate test;
+
 use std::iter::Peekable;
 
 struct NSeive {
@@ -62,14 +66,71 @@ impl Iterator for PrimeSeive {
     }
 }
 
+pub struct IntSeive {
+    index: usize,
+    primes: Vec<usize>,
+}
+
+impl IntSeive {
+    pub fn new() -> IntSeive {
+        IntSeive {
+            index: 1,
+            primes: vec![],
+        }
+    }
+}
+
+impl Iterator for IntSeive {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        'inc: loop {
+            self.index += 1;
+            for prime in &mut self.primes {
+                if self.index % *prime == 0 {
+                    continue 'inc;
+                }
+            }
+
+            self.primes.push(self.index);
+            return Some(self.index);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::PrimeSeive;
+    use test::Bencher;
+
+    use crate::{IntSeive, PrimeSeive};
 
     #[test]
     fn first_ten_primes() {
         let primes: Vec<usize> = PrimeSeive::new().take(10).collect();
 
         assert_eq!(primes, vec!(2, 3, 5, 7, 11, 13, 17, 19, 23, 29));
+    }
+
+    #[test]
+    fn first_ten_primes_int() {
+        let primes: Vec<usize> = IntSeive::new().take(10).collect();
+
+        assert_eq!(primes, vec!(2, 3, 5, 7, 11, 13, 17, 19, 23, 29));
+    }
+
+    #[bench]
+    fn internal_structs(b: &mut Bencher) {
+        b.iter(|| {
+            let s = PrimeSeive::new();
+            for _ in s.take(100) {}
+        })
+    }
+
+    #[bench]
+    fn internal_int(b: &mut Bencher) {
+        b.iter(|| {
+            let s = IntSeive::new();
+            for _ in s.take(100) {}
+        })
     }
 }
