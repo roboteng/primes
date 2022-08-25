@@ -2,6 +2,7 @@
 
 extern crate test;
 
+use fastdiv::{FastDiv, PrecomputedDivU32};
 use std::iter::Peekable;
 
 struct NSeive {
@@ -98,11 +99,43 @@ impl Iterator for IntSeive {
     }
 }
 
+pub struct FastSeive {
+    index: u32,
+    primes: Vec<PrecomputedDivU32>,
+}
+
+impl FastSeive {
+    pub fn new() -> FastSeive {
+        FastSeive {
+            index: 1,
+            primes: vec![],
+        }
+    }
+}
+
+impl Iterator for FastSeive {
+    type Item = u32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        'inc: loop {
+            self.index += 1;
+            for prime in &mut self.primes {
+                if self.index.is_multiple_of(*prime) {
+                    continue 'inc;
+                }
+            }
+
+            self.primes.push(self.index.precompute_div());
+            return Some(self.index);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use test::Bencher;
 
-    use crate::{IntSeive, PrimeSeive};
+    use crate::{FastSeive, IntSeive, PrimeSeive};
 
     #[test]
     fn first_ten_primes() {
@@ -118,6 +151,16 @@ mod tests {
         assert_eq!(primes, vec!(2, 3, 5, 7, 11, 13, 17, 19, 23, 29));
     }
 
+    #[test]
+    fn first_ten_primes_fast() {
+        let mut vec: Vec<u32> = vec![];
+        for p in FastSeive::new().take(10) {
+            vec.push(p);
+        }
+
+        assert_eq!(vec, vec!(2, 3, 5, 7, 11, 13, 17, 19, 23, 29));
+    }
+
     #[bench]
     fn internal_structs(b: &mut Bencher) {
         b.iter(|| {
@@ -130,6 +173,14 @@ mod tests {
     fn internal_int(b: &mut Bencher) {
         b.iter(|| {
             let s = IntSeive::new();
+            for _ in s.take(100) {}
+        })
+    }
+
+    #[bench]
+    fn internal_fast(b: &mut Bencher) {
+        b.iter(|| {
+            let s = FastSeive::new();
             for _ in s.take(100) {}
         })
     }
